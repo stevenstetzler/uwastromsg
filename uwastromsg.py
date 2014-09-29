@@ -57,13 +57,14 @@ import sys       # For retrieving command line arguments
 
 # Paths to input files and settings
 assignmentspath = 'assignments.txt'    # File with assignment usernames and dates
-messagepaths = 'messagecontents/*' # There should be two message file here
+messagepaths = 'messagecontents/message*' # There should be two message file here
 warningtime = '2:00pm' # Time to send email warnings, in local time for the running machine.
 Ndays_firstwarning = 2 # Number of days before assignment to send first email
 Ndays_secondwarning = 1 # Number of days before assignment to send second email
 admin_emailaddress = 'bmmorris@uw.edu' # Person launching the script
 astrogrademail = 'uwastrograds@gmail.edu' # Astro grad email address
-message_subject = 'The Pizza Committee has selected you!' # Subject line of emails
+#message_subject = 'The Pizza Committee has selected you!' # Subject line of emails
+message_subject = open('messagecontents/subject.txt', 'r').read()
 pythonpath = '/astro/apps6/anaconda2.0/bin/python' # Which Python to use
 thisfilepath = os.path.abspath(__file__)  # Path to this file
 logfilepath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'log.txt'))
