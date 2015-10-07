@@ -15,9 +15,11 @@ assignment (usually a Friday) separated by whitespace, like so:
 
 This script will set up `at` jobs to email each grad in the 
 assignments file twice before the assignment date (the user
-can tweak the number of days before the assignemnt these two
+can tweak the number of days before the assignment these two
 emails will be sent). The contents of the emails should be stored
-in two text files in the directory `messagecontents`.
+in two text files in the directory `messagecontents`. Note - we're
+using HTML encoding to send out those files, so to render line breaks,
+use <br> tags, etc.
 
 To add new assignments, first update the `assignments.txt` file with
 new assignments. Then run:
@@ -56,22 +58,23 @@ import os        # Interface with file system
 import sys       # For retrieving command line arguments
 
 # Paths to input files and settings
-assignmentspath = 'assignments.txt'    # File with assignment usernames and dates
+assignmentspath = 'assignments.txt'       # File with assignment usernames and dates
 messagepaths = 'messagecontents/message*' # There should be two message file here
-warningtime = '2:00pm' # Time to send email warnings, in local time for the running machine.
-Ndays_firstwarning = 2 # Number of days before assignment to send first email
-Ndays_secondwarning = 1 # Number of days before assignment to send second email
-admin_emailaddress = 'bmmorris@uw.edu' # Person launching the script
+warningtime = '2:00pm'                    # Time to send email warnings, in local time for the running machine.
+Ndays_firstwarning = 2                    # Number of days before assignment to send first email
+Ndays_secondwarning = 1                   # Number of days before assignment to send second email
+admin_emailaddress = 'bmmorris@uw.edu'    # Person launching the script
 astrogrademail = 'uwastrograds@gmail.edu' # Astro grad email address
-#message_subject = 'The Pizza Committee has selected you!' # Subject line of emails
-message_subject = open('messagecontents/subject.txt', 'r').read()
-pythonpath = '/astro/apps6/anaconda2.0/bin/python' # Which Python to use
-thisfilepath = os.path.abspath(__file__)  # Path to this file
-logfilepath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'log.txt'))
+message_subject = 'The Pizza Committee has selected you!' # Subject line of emails
+pythonpath = '/astro/apps6/anaconda2.0/bin/python'        # Which Python to use
+thisfilepath = os.path.abspath(__file__)                  # Path to this file
+logfilepath = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                           'log.txt'))
 logfile = open(logfilepath, 'a')
-schedulerpath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'scheduler.sh'))
+schedulerpath = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                             'scheduler.sh'))
 
-def preparescheduler():
+def prepare_scheduler():
     '''
     Make a `scheduler.sh` script that can be sourced to prepare the `at` jobs. 
     Run the script with: 
@@ -79,7 +82,8 @@ def preparescheduler():
     '''
     assignmentslist = open(assignmentspath, 'r').readlines()
     # Get absolute paths to the message content files
-    firstmessagepath, secondmessagepath = [os.path.abspath(f) for f in sorted(glob(messagepaths))]
+    firstmessagepath, secondmessagepath = [os.path.abspath(f)
+                                           for f in sorted(glob(messagepaths))]
 
     scheduler = open(schedulerpath, 'w') # Open the scheduler file (output)
     
@@ -92,62 +96,61 @@ def preparescheduler():
         firstwarningdate = assignmentdate - datetime.timedelta(days=Ndays_firstwarning)
         secondwarningdate = assignmentdate - datetime.timedelta(days=Ndays_secondwarning)
         
-        scheduleline_firstwarning = 'echo \"%s %s %s %s@uw.edu\" | at %s %s \n' %\
-                                    (pythonpath, thisfilepath, firstmessagepath, emailusername, \
-                                    warningtime, firstwarningdate.strftime('%m%d%y'))
-        scheduleline_secondwarning = 'echo \"%s %s %s %s@uw.edu\" | at %s %s \n' %\
-                                    (pythonpath, thisfilepath, secondmessagepath, emailusername, \
-                                    warningtime, secondwarningdate.strftime('%m%d%y'))
+        scheduleline_firstwarning = ('echo \"%s %s %s %s@uw.edu\" | at %s %s \n' %
+                                     (pythonpath, thisfilepath, firstmessagepath, emailusername,
+                                      warningtime, firstwarningdate.strftime('%m%d%y')))
+        scheduleline_secondwarning = ('echo \"%s %s %s %s@uw.edu\" | at %s %s \n' %
+                                      (pythonpath, thisfilepath, secondmessagepath, emailusername,
+                                       warningtime, secondwarningdate.strftime('%m%d%y')))
         
         scheduler.write(scheduleline_firstwarning)
         scheduler.write(scheduleline_secondwarning)
     
     scheduler.close()
 
-def sendEmail(fromAddress, toAddress, ccAddress, replyToAddress, subject, message):
+def send_email(from_address, to_address, cc_address, reply_to_address, subject, message):
     '''
     Send an email!
     '''
     msg = MIMEText(message.encode('utf-8'), 'html', 'utf-8')
-    #msg = MIMEText(message)
     msg['Subject'] = subject
-    msg['From'] = fromAddress
-    msg['To'] = toAddress
-    msg['cc'] = ccAddress 
-    msg.add_header('reply-to', replyToAddress)
+    msg['From'] = from_address
+    msg['To'] = to_address
+    msg['cc'] = cc_address
+    msg.add_header('reply-to', reply_to_address)
     s = smtplib.SMTP('smtp.gmail.com', 587)
     s.ehlo()
     s.starttls()
     s.ehlo()
     # Read u and p
-    username =  open(os.path.join(os.path.dirname(__file__), 'u'), 'rb').read()
+    username = open(os.path.join(os.path.dirname(__file__), 'u'), 'rb').read()
     p = open(os.path.join(os.path.dirname(__file__), 'p'),'rb').read()
     s.login(username, p)
-    s.sendmail(fromAddress, [toAddress] + [ccAddress], msg.as_string())
+    s.sendmail(from_address, [to_address] + [cc_address], msg.as_string())
     s.quit()
 
-# When this script is run from the command line:
-#if __name__ == "__main__":
+# When this script is run via command line:
 commandlineargs = sys.argv
 
 # If the script is run with no command line arguments:
 if len(commandlineargs) == 1:
     print 'Preparing the scheduler.'
-    preparescheduler()
+    prepare_scheduler()
     logmessage = ' '.join([str(datetime.datetime.now()), 'preparing scheduler'])+'\n'
     print 'Updating log file: %s' % logfilepath
     print '\nOnce complete, run:\n    source scheduler.sh'
+
 # Otherwise, assume the script is being run by an `at` job
 else:
     thisfilename, messagecontentpath, emailaddress = commandlineargs
     messagecontent = open(messagecontentpath, 'r').read()
-    logmessage = ' '.join([str(datetime.datetime.now()),\
+    logmessage = ' '.join([str(datetime.datetime.now()),
                            emailaddress, messagecontentpath])+'\n'
-    sendEmail(fromAddress=astrogrademail,
-              toAddress=emailaddress,
-              ccAddress=admin_emailaddress,
-              replyToAddress=admin_emailaddress, 
-              subject=message_subject,
-              message=messagecontent)
+    send_email(from_address=astrogrademail,
+               to_address=emailaddress,
+               cc_address=admin_emailaddress,
+               reply_to_address=admin_emailaddress,
+               subject=message_subject,
+               message=messagecontent)
 logfile.write(logmessage)
 logfile.close()
