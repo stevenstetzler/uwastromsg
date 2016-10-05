@@ -1,2 +1,4 @@
+*.pyc
 p
+*.sh
 log.txt

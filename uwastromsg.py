@@ -48,6 +48,17 @@ emails will be sent.
 Created on Sep 27, 2014 by Brett Morris. Built upon the enduring
 work of "THE LEGENDARY YUSRA ALSAYYAD" who wrote the original version on 
 "JULY 6, 2013, WHILE LONELY AT MRO."
+
+Jave Note:
+
+If you run into issues, try the following in an ipython console:
+
+from uwastromsg import send_email
+
+send_email(from_address, to_address, cc_address, from_address, subject, message)
+
+to see if emails can be properly sent!
+
 """
 
 import datetime  # For handling dates
@@ -57,19 +68,30 @@ from glob import glob # Search for file paths
 import os        # Interface with file system
 import sys       # For retrieving command line arguments
 
+# Change this if you're trying the script out!
+debug = True
+
 # Paths to input files and settings
 assignmentspath = 'assignments.txt'       # File with assignment usernames and dates
 messagepaths = 'messagecontents/message*' # There should be two message file here
-warningtime = '2:00pm'                    # Time to send email warnings, in local time for the running machine.
+
+# Debug: send in now + minute
+
+if debug:
+	warningtime = datetime.datetime.now() + datetime.timedelta(seconds=120)
+	warningtime = warningtime.strftime("%I:%M%p")
+else:
+	warningtime = '12:00pm'                    # Time to send email warnings, in local time for the running machine.
+
 Ndays_firstwarning = 2                    # Number of days before assignment to send first email
 Ndays_secondwarning = 1                   # Number of days before assignment to send second email
-admin_emailaddress = 'bmmorris@uw.edu'    # Person launching the script
-astrogrademail = 'uwastrograds@gmail.edu' # Astro grad email address
-message_subject = 'The Pizza Committee has selected you!' # Subject line of emails
-pythonpath = '/astro/apps6/anaconda2.0/bin/python'        # Which Python to use
+admin_emailaddress = 'dflemin3@uw.edu'    # Person launching the script
+astrogrademail = 'uwastrograds@gmail.com' # Astro grad email address
+message_subject = "The W(h)ine Time Committee has selected you!" # Subject line of emails
+#pythonpath = '/astro/apps6/anaconda2.0/bin/python'        # Which Python to use
+pythonpath = "/astro/apps6/opt/anaconda2.4/bin/python"
 thisfilepath = os.path.abspath(__file__)                  # Path to this file
-logfilepath = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                           'log.txt'))
+logfilepath = os.path.abspath(os.path.join(os.path.dirname(__file__),'log.txt'))
 logfile = open(logfilepath, 'a')
 schedulerpath = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              'scheduler.sh'))
@@ -123,34 +145,35 @@ def send_email(from_address, to_address, cc_address, reply_to_address, subject, 
     s.starttls()
     s.ehlo()
     # Read u and p
-    username = open(os.path.join(os.path.dirname(__file__), 'u'), 'rb').read()
-    p = open(os.path.join(os.path.dirname(__file__), 'p'),'rb').read()
+    username = open(os.path.join(os.path.dirname(__file__), 'u'), 'rb').read().strip()
+    p = open(os.path.join(os.path.dirname(__file__), 'p'),'rb').read().strip()
     s.login(username, p)
     s.sendmail(from_address, [to_address] + [cc_address], msg.as_string())
     s.quit()
 
-# When this script is run via command line:
-commandlineargs = sys.argv
+if __name__ == "__main__":
 
-# If the script is run with no command line arguments:
-if len(commandlineargs) == 1:
-    print 'Preparing the scheduler.'
-    prepare_scheduler()
-    logmessage = ' '.join([str(datetime.datetime.now()), 'preparing scheduler'])+'\n'
-    print 'Updating log file: %s' % logfilepath
-    print '\nOnce complete, run:\n    source scheduler.sh'
+    # When this script is run via command line:
+    commandlineargs = sys.argv
 
-# Otherwise, assume the script is being run by an `at` job
-else:
-    thisfilename, messagecontentpath, emailaddress = commandlineargs
-    messagecontent = open(messagecontentpath, 'r').read()
-    logmessage = ' '.join([str(datetime.datetime.now()),
-                           emailaddress, messagecontentpath])+'\n'
-    send_email(from_address=astrogrademail,
-               to_address=emailaddress,
-               cc_address=admin_emailaddress,
-               reply_to_address=admin_emailaddress,
-               subject=message_subject,
-               message=messagecontent)
-logfile.write(logmessage)
-logfile.close()
+    # If the script is run with no command line arguments:
+    if len(commandlineargs) == 1:
+        print 'Preparing the scheduler.'
+        prepare_scheduler()
+        logmessage = ' '.join([str(datetime.datetime.now()), 'preparing scheduler'])+'\n'
+        print 'Updating log file: %s' % logfilepath
+        print '\nOnce complete, run:\n    source scheduler.sh'
+
+    # Otherwise, assume the script is being run by an `at` job
+    else:
+        thisfilename, messagecontentpath, emailaddress = commandlineargs
+        messagecontent = open(messagecontentpath, 'r').read()
+        logmessage = ' '.join([str(datetime.datetime.now()),emailaddress, messagecontentpath])+'\n'
+        send_email(from_address=astrogrademail,
+        	       to_address=emailaddress,
+            	   cc_address=admin_emailaddress,
+               	   reply_to_address=admin_emailaddress,
+              	   subject=message_subject,
+               	   message=messagecontent)
+    logfile.write(logmessage)
+    logfile.close()
