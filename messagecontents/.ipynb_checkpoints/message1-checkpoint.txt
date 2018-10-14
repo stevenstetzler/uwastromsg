@@ -1,6 +1,6 @@
 This is an automated message from the W(h)ine Time Committee!  Hey {0}, you have been selected to lead this week!
-If you are unable to do so, please find a replacement leader or contact Tyler (tagordon at uw dot edu) 
+If you are unable to do so, please find a replacement leader or contact David (dflemin3 at uw dot edu) 
 so he can lead everyone to the Pub.<br />
-Can't think of anywhere to go? How about {1}, or some place in {2}?<br />
+If you need inspiration, try {1}!<br />
 "Look to my coming on the last light of the fifth day, at dusk look to the yeast."<br />
 The W(h)ine Time Committee

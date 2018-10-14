@@ -85,7 +85,7 @@ else:
 
 Ndays_firstwarning = 2                    # Number of days before assignment to send first email
 Ndays_secondwarning = 1                   # Number of days before assignment to send second email
-admin_emailaddress = 'dflemin3@uw.edu'    # Person launching the script
+admin_emailaddress = 'tagordon@uw.edu'    # Person launching the script
 astrogrademail = 'uwastrograds@gmail.com' # Astro grad email address
 message_subject = "The W(h)ine Time Committee has selected you!" # Subject line of emails
 #pythonpath = '/astro/apps6/anaconda2.0/bin/python'        # Which Python to use
@@ -113,18 +113,29 @@ def prepare_scheduler():
         # From the assignments list: get the user, and date of assignment, calculate
         # when to send the warning, and which warning to send
         emailusername = assignment.split()[0]
-        month, day, year = map(int,assignment.split()[1:])
+        month, day, year = map(int,assignment.split()[1:4])
+        #words = [w.replace("\'", "") for w in assignment.split()[4:]]
+        words = [w.replace("\"", "") for w in assignment.split()[4:]]
+        words = "\\\"" + "\\\" \\\"".join(words) + "\\\""
         assignmentdate = datetime.datetime(year, month, day)
         firstwarningdate = assignmentdate - datetime.timedelta(days=Ndays_firstwarning)
         secondwarningdate = assignmentdate - datetime.timedelta(days=Ndays_secondwarning)
         
-        scheduleline_firstwarning = ('echo \"%s %s %s %s@uw.edu\" | at %s %s \n' %
-                                     (pythonpath, thisfilepath, firstmessagepath, emailusername,
-                                      warningtime, firstwarningdate.strftime('%m%d%y')))
-        scheduleline_secondwarning = ('echo \"%s %s %s %s@uw.edu\" | at %s %s \n' %
-                                      (pythonpath, thisfilepath, secondmessagepath, emailusername,
-                                       warningtime, secondwarningdate.strftime('%m%d%y')))
-        
+        scheduleline_firstwarning = ('echo \"{} {} {} {}@uw.edu {}\" | at {} {} \n'.format(pythonpath, 
+                                                                                        thisfilepath, 
+                                                                                        firstmessagepath, 
+                                                                                        emailusername,
+                                                                                        words, 
+                                                                                        warningtime, 
+                                                                                        firstwarningdate.strftime('%m%d%y')))
+                                     
+        scheduleline_secondwarning = ('echo \"{} {} {} {}@uw.edu {}\" | at {} {} \n'.format(pythonpath, 
+                                                                                         thisfilepath, 
+                                                                                         secondmessagepath, 
+                                                                                         emailusername,
+                                                                                         words, 
+                                                                                         warningtime, 
+                                                                                         secondwarningdate.strftime('%m%d%y')))
         scheduler.write(scheduleline_firstwarning)
         scheduler.write(scheduleline_secondwarning)
     
@@ -145,35 +156,44 @@ def send_email(from_address, to_address, cc_address, reply_to_address, subject, 
     s.starttls()
     s.ehlo()
     # Read u and p
-    username = open(os.path.join(os.path.dirname(__file__), 'u'), 'rb').read().strip()
-    p = open(os.path.join(os.path.dirname(__file__), 'p'),'rb').read().strip()
+    username = open(os.path.join(os.path.dirname(__file__), 'u'), 'r').read().strip()
+    p = open(os.path.join(os.path.dirname(__file__), 'p'),'r').read().strip()
     s.login(username, p)
     s.sendmail(from_address, [to_address] + [cc_address], msg.as_string())
-    s.quit()
+    s.quit()    
 
 if __name__ == "__main__":
 
     # When this script is run via command line:
-    commandlineargs = sys.argv
+    nargs = len(sys.argv)
 
     # If the script is run with no command line arguments:
-    if len(commandlineargs) == 1:
-        print 'Preparing the scheduler.'
+    if nargs == 1:
+        print('Preparing the scheduler.')
         prepare_scheduler()
         logmessage = ' '.join([str(datetime.datetime.now()), 'preparing scheduler'])+'\n'
-        print 'Updating log file: %s' % logfilepath
-        print '\nOnce complete, run:\n    source scheduler.sh'
+        print('Updating log file: {}'.format(logfilepath))
+        print('\nOnce complete, run:\n    source scheduler.sh')
 
     # Otherwise, assume the script is being run by an `at` job
     else:
-        thisfilename, messagecontentpath, emailaddress = commandlineargs
-        messagecontent = open(messagecontentpath, 'r').read()
+        thisfilename, messagecontentpath, emailaddress = sys.argv[:3]
+        if nargs > 3:
+            wordslist = sys.argv[3:]
+            basemessage = open(messagecontentpath, 'r').read()
+            try:
+                messagecontent = basemessage.format(*wordslist)
+            except: 
+                logmessage = "number of blanks in base message does not match number of words"
+                logfile.write(logmessage)
+        else:
+            messagecontent = open(messagecontentpath, 'r').read()
         logmessage = ' '.join([str(datetime.datetime.now()),emailaddress, messagecontentpath])+'\n'
-        send_email(from_address=astrogrademail,
-        	       to_address=emailaddress,
-            	   cc_address=admin_emailaddress,
-               	   reply_to_address=admin_emailaddress,
-              	   subject=message_subject,
-               	   message=messagecontent)
-    logfile.write(logmessage)
-    logfile.close()
+        send_email(from_address=astrogrademail, 
+                  to_address=emailaddress, 
+                  cc_address=admin_emailaddress, 
+                  reply_to_address=admin_emailaddress, 
+                  subject=message_subject, 
+                  message=messagecontent)
+        logfile.write(logmessage)
+        logfile.close()
