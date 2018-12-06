@@ -1,28 +1,28 @@
 # -*- coding: utf-8 -*-
 """
 Email script for pizza lunch and w(h)ine time warnings
+Modified by Trevor Dorn-Wallenstein to do birthdays
 ======================================================
 
 In the same directory as this script, you should create
-an `assignments.txt` file. Each line will have a username
-of a grad to receive an assignment (i.e. the part of their
-@uw.edu email address before the @) and the date of the 
-assignment (usually a Friday) separated by whitespace, like so: 
+a `birthdays.txt` file. Each line will have a username+name
+of a grad with their next birthday, like so: 
 
-    bmmorris 9 26 2014
-    eakruse 10 3 2014
-    nmhw 10 10 2014 
+    tzdw Trevor MM DD 2019
 
-This script will set up `at` jobs to email each grad in the 
-assignments file twice before the assignment date (the user
-can tweak the number of days before the assignment these two
-emails will be sent). The contents of the emails should be stored
-in two text files in the directory `messagecontents`. Note - we're
-using HTML encoding to send out those files, so to render line breaks,
-use <br> tags, etc.
+Where you're careful to choose the right year because 
+otherwise it'll break. At the end of the file, make an
+entry like
+    rerun Trevor MM DD YYYY
+Where MM DD YYYY is the date you want to be reminded
+to set up the script next year. This script will set up `at` jobs 
+to email the grads on each birthday. The contents of the 
+emails should be specified in this script. Note - we're
+using HTML encoding to send out those files, so to render 
+line breaks, use <br> tags, etc.
 
-To add new assignments, first update the `assignments.txt` file with
-new assignments. Then run:
+To add new assignments, first update the `birthdays.txt` 
+file with new birthdays, years, grads, etc. Then run:
 
     $ python uwastromsg.py
 
@@ -45,8 +45,9 @@ saved in text files in this directory -- if you don't have
 that info, contact Brett at bmmorris@uw.edu, otherwise no
 emails will be sent.
 
-Created on Sep 27, 2014 by Brett Morris. Built upon the enduring
-work of "THE LEGENDARY YUSRA ALSAYYAD" who wrote the original version on 
+Last edit: December 5th, 2018. Created on Sep 27, 2014 by 
+Brett Morris. Built upon the enduring work of "THE LEGENDARY 
+YUSRA ALSAYYAD" who wrote the original version on 
 "JULY 6, 2013, WHILE LONELY AT MRO."
 
 Jave Note:
@@ -69,11 +70,10 @@ import os        # Interface with file system
 import sys       # For retrieving command line arguments
 
 # Change this if you're trying the script out!
-debug = True
+debug = False
 
 # Paths to input files and settings
-assignmentspath = 'assignments.txt'       # File with assignment usernames and dates
-messagepaths = 'messagecontents/message*' # There should be two message file here
+birthdayspath = 'birthdays.txt'       # File with names and next birthdays
 
 # Debug: send in now + minute
 
@@ -81,13 +81,11 @@ if debug:
 	warningtime = datetime.datetime.now() + datetime.timedelta(seconds=120)
 	warningtime = warningtime.strftime("%I:%M%p")
 else:
-	warningtime = '12:00pm'                    # Time to send email warnings, in local time for the running machine.
+	warningtime = '9:00am'                    # Time to send email warnings, in local time for the running machine.
 
-Ndays_firstwarning = 2                    # Number of days before assignment to send first email
-Ndays_secondwarning = 1                   # Number of days before assignment to send second email
-admin_emailaddress = 'tagordon@uw.edu'    # Person launching the script
+admin_emailaddress = 'tzdw@uw.edu'    # Person launching the script
 astrogrademail = 'uwastrograds@gmail.com' # Astro grad email address
-message_subject = "The W(h)ine Time Committee has selected you!" # Subject line of emails
+message_subject = "Happy birthday {0}!!!" # Subject line of emails
 #pythonpath = '/astro/apps6/anaconda2.0/bin/python'        # Which Python to use
 pythonpath = "/astro/apps6/opt/anaconda2.4/bin/python"
 thisfilepath = os.path.abspath(__file__)                  # Path to this file
@@ -102,49 +100,39 @@ def prepare_scheduler():
     Run the script with: 
         $ source scheduler.sh
     '''
-    assignmentslist = open(assignmentspath, 'r').readlines()
+    birthdayslist = open(birthdayspath, 'r').readlines()
     # Get absolute paths to the message content files
-    firstmessagepath, secondmessagepath = [os.path.abspath(f)
-                                           for f in sorted(glob(messagepaths))]
 
     scheduler = open(schedulerpath, 'w') # Open the scheduler file (output)
     
-    for assignment in assignmentslist:
-        # From the assignments list: get the user, and date of assignment, calculate
-        # when to send the warning, and which warning to send
-        emailusername = assignment.split()[0]
-        month, day, year = map(int,assignment.split()[1:4])
-        #words = [w.replace("\'", "") for w in assignment.split()[4:]]
-        words = [w.replace("\"", "") for w in assignment.split()[4:]]
-        words = "\\\"" + "\\\" \\\"".join(words) + "\\\""
-        assignmentdate = datetime.datetime(year, month, day)
-        firstwarningdate = assignmentdate - datetime.timedelta(days=Ndays_firstwarning)
-        secondwarningdate = assignmentdate - datetime.timedelta(days=Ndays_secondwarning)
+    for birthday in birthdayslist:
+        # From the birthday list: get the name, and date of birthday
+        uname = birthday.split()[0]
+        name = birthday.split()[1]
+        month, day, year = map(int,birthday.split()[2:5])
+        birthdaydate = datetime.datetime(year, month, day)
+                                           
         
-        scheduleline_firstwarning = ('echo \"{} {} {} {}@uw.edu {}\" | at {} {} \n'.format(pythonpath, 
+        scheduleline_birthday = ('echo \"{} {} {} {} \" | at {} {} \n'.format(pythonpath, 
                                                                                         thisfilepath, 
-                                                                                        firstmessagepath, 
-                                                                                        emailusername,
-                                                                                        words, 
+                                                                                        name,
+                                                                                        uname,
                                                                                         warningtime, 
-                                                                                        firstwarningdate.strftime('%m%d%y')))
+                                                                                        birthdaydate.strftime('%m%d%y')))
                                      
-        scheduleline_secondwarning = ('echo \"{} {} {} {}@uw.edu {}\" | at {} {} \n'.format(pythonpath, 
-                                                                                         thisfilepath, 
-                                                                                         secondmessagepath, 
-                                                                                         emailusername,
-                                                                                         words, 
-                                                                                         warningtime, 
-                                                                                         secondwarningdate.strftime('%m%d%y')))
-        scheduler.write(scheduleline_firstwarning)
-        scheduler.write(scheduleline_secondwarning)
+                                           
+        scheduler.write(scheduleline_birthday)
+
     
     scheduler.close()
 
-def send_email(from_address, to_address, cc_address, reply_to_address, subject, message):
+def send_email(from_address, to_address, cc_address, reply_to_address, subject, message=None):
     '''
     Send an email!
     '''
+    name = subject.split()[2][:-3]
+    if message is None:
+            message = 'Wish {0} a <a href="https://www.google.com/url?sa=i&rct=j&q=&esrc=s&source=images&cd=&cad=rja&uact=8&ved=2ahUKEwiG89O96YnfAhXQJTQIHXh5DJMQjRx6BAgBEAU&url=https%3A%2F%2Fgiphy.com%2Fgifs%2Fbirthday-happy-pusheen-jxTnOS8Mkv8n6&psig=AOvVaw3MgGfOmRlFxhvVRFtXDL1i&ust=1544138277438054">happy birthday</a> today!'.format(name)
     msg = MIMEText(message.encode('utf-8'), 'html', 'utf-8')
     msg['Subject'] = subject
     msg['From'] = from_address
@@ -177,23 +165,20 @@ if __name__ == "__main__":
 
     # Otherwise, assume the script is being run by an `at` job
     else:
-        thisfilename, messagecontentpath, emailaddress = sys.argv[:3]
-        if nargs > 3:
-            wordslist = sys.argv[3:]
-            basemessage = open(messagecontentpath, 'r').read()
-            try:
-                messagecontent = basemessage.format(*wordslist)
-            except: 
-                logmessage = "number of blanks in base message does not match number of words"
-                logfile.write(logmessage)
+        thisfilename, name, uname = sys.argv[:3]
+        logmessage = ' '.join([str(datetime.datetime.now()),uname])+'\n'
+        if uname != 'rerun':
+                send_email(from_address=astrogrademail, 
+                           to_address='astro-grads@astro.washington.edu', 
+                           cc_address='{0}@uw.edu'.format(uname), 
+                           reply_to_address=admin_emailaddress, 
+                           subject=message_subject.format(name))
         else:
-            messagecontent = open(messagecontentpath, 'r').read()
-        logmessage = ' '.join([str(datetime.datetime.now()),emailaddress, messagecontentpath])+'\n'
-        send_email(from_address=astrogrademail, 
-                  to_address=emailaddress, 
-                  cc_address=admin_emailaddress, 
-                  reply_to_address=admin_emailaddress, 
-                  subject=message_subject, 
-                  message=messagecontent)
+                send_email(from_address=astrogrademail,
+                           to_address=admin_emailaddress,
+                           cc_address=admin_emailaddress,
+                           reply_to_address=astrogrademail,
+                           subject='Rerun the birthday script!',
+                           message='Hey, make sure the set up the birthday script ASAP!')
         logfile.write(logmessage)
         logfile.close()

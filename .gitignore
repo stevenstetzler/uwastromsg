@@ -1,4 +1,5 @@
 *.pyc
 p
+birthdays.txt
 *.sh
 log.txt
